@@ -33,6 +33,39 @@ namespace vgui
     };
     static CDummyImage g_DummyImage;
 
+    // Minimal IScheme: no resources, default colors, no fonts. Enough to stop the engine
+    // from dereferencing NULL; real scheme file parsing can be added later.
+    class CScheme : public IScheme
+    {
+    public:
+        const char* GetResourceString(const char* name) override
+        {
+            VGUI_TRACE("IScheme::GetResourceString('%s')\n", name ? name : "(null)");
+            return "";
+        }
+        void* GetBorder(const char* name) override
+        {
+            VGUI_TRACE("IScheme::GetBorder('%s') -> NULL\n", name ? name : "(null)");
+            return nullptr;
+        }
+        HFont GetFont(const char* name, bool proportional) override
+        {
+            VGUI_TRACE("IScheme::GetFont('%s', %d) -> 0\n", name ? name : "(null)", (int)proportional);
+            return 0;
+        }
+        Color GetColor(const char* name, Color def) override
+        {
+            VGUI_TRACE("IScheme::GetColor('%s') -> default\n", name ? name : "(null)");
+            return def;
+        }
+        HFont GetFontEx(const char* name, bool a, bool b) override
+        {
+            VGUI_TRACE("IScheme::GetFontEx('%s', %d, %d) -> 0\n", name ? name : "(null)", (int)a, (int)b);
+            return 0;
+        }
+    };
+    static CScheme g_Scheme;
+
     class CSchemeManager : public ISchemeManager
     {
     public:
@@ -68,8 +101,8 @@ namespace vgui
         }
         void* GetIScheme(HScheme scheme) override
         {
-            VGUI_TRACE("ISchemeManager::GetIScheme(%lu) -> NULL (IScheme not implemented)\n", scheme);
-            return nullptr;
+            VGUI_TRACE("ISchemeManager::GetIScheme(%lu) -> CScheme\n", scheme);
+            return &g_Scheme;
         }
         void Shutdown(bool full) override { VGUI_TRACE("ISchemeManager::Shutdown(%d)\n", (int)full); }
         int GetProportionalScaledValue(int normalizedValue) override { return normalizedValue * ScreenTall() / 480; }
