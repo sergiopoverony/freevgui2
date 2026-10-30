@@ -1,6 +1,7 @@
 #pragma once
 #include "VGui.h"
 #include <cstring>
+#include <vector>
 
 namespace vgui
 {
@@ -32,6 +33,17 @@ namespace vgui
         HPanel GetID() const { return m_nID; }
         void SetID(HPanel id) { m_nID = id; }
         
+        // Extra state used by IPanel (public on purpose: plain data holder)
+        void* m_pClient = nullptr;       // IClientPanel* handed over in IPanel::Init
+        void* m_pPlat = nullptr;         // SurfacePlat* (IPanel::Plat/SetPlat)
+        int m_iMinWide = 0, m_iMinTall = 0, m_iZPos = 0;
+        int m_iInsetL = 0, m_iInsetT = 0, m_iInsetR = 0, m_iInsetB = 0;
+        bool m_bPopup = false, m_bPopupVisible = true;
+        bool m_bKeyInput = true, m_bMouseInput = true;
+        bool m_bProportional = false, m_bAutoDelete = false;
+        HScheme m_hScheme = 0;
+        std::vector<VPanel*> m_Children;
+
     private:
         HPanel m_nID;
         char* m_pszName;

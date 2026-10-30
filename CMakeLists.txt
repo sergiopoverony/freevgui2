@@ -10,7 +10,6 @@ add_library(vgui2 SHARED
     src/interfaces/Surface.cpp
     src/interfaces/VGui.cpp
     src/interfaces/VPanel.cpp
-    src/interfaces/VPanelWrapper.cpp
     src/interfaces/SchemeManager.cpp
     src/interfaces/Controls.cpp
     src/interfaces/PanelFactory.cpp

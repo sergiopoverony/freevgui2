@@ -18,13 +18,15 @@ namespace vgui
     
     VPanel::~VPanel()
     {
+        SetParent(nullptr);
+        for (VPanel* child : m_Children)
+            child->m_pParent = nullptr;
         if (m_pszName) free(m_pszName);
         if (m_pszClassName) free(m_pszClassName);
     }
     
     void VPanel::Init()
     {
-        m_nID = INVALID_PANEL;
         m_iX = m_iY = 0;
         m_iWide = m_iTall = 0;
         m_bVisible = true;
@@ -118,7 +120,15 @@ namespace vgui
     
     void VPanel::SetParent(VPanel* parent)
     {
+        if (m_pParent == parent) return;
+        if (m_pParent)
+        {
+            auto& v = m_pParent->m_Children;
+            for (size_t i = 0; i < v.size(); i++)
+                if (v[i] == this) { v.erase(v.begin() + i); break; }
+        }
         m_pParent = parent;
+        if (m_pParent) m_pParent->m_Children.push_back(this);
     }
     
     VPanel* VPanel::GetParent() const
