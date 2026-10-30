@@ -1,6 +1,11 @@
 #pragma once
 #include "VGui.h"
 
+// windows.h defines PostMessage -> PostMessageA, which renames our virtual method
+#ifdef PostMessage
+#undef PostMessage
+#endif
+
 namespace vgui
 {
     typedef unsigned long VPANEL;

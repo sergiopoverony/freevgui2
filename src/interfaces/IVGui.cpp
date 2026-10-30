@@ -1,5 +1,6 @@
 #include "vgui/IVGui.h"
 #include <windows.h>
+#undef PostMessage
 #include <cstdio>
 #include <cstdarg>
 
