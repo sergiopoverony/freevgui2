@@ -1,6 +1,7 @@
 #include "vgui/IPanel.h"
 #include "vgui/VPanel.h"
 #include <cstring>
+#include <windows.h>
 
 namespace vgui
 {
@@ -9,7 +10,35 @@ namespace vgui
 
     // Logs only the first 24 calls from each call site, so the log stays readable
     // but still shows which IPanel methods the engine really uses (and in which order).
+    // Name (without extension) of the DLL that contains `addr`; empty if unknown.
+    // Used to work out which module a client panel belongs to: its vtable lives in that DLL.
+    static void ModuleBaseNameFromAddress(const void* addr, char* out, size_t outSize)
+    {
+        out[0] = 0;
+        HMODULE hMod = nullptr;
+        if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)addr, &hMod) || !hMod)
+            return;
+        char path[MAX_PATH] = {0};
+        if (!GetModuleFileNameA(hMod, path, MAX_PATH)) return;
+        const char* name = strrchr(path, '\\');
+        name = name ? name + 1 : path;
+        size_t n = strlen(name);
+        if (n > 4 && _stricmp(name + n - 4, ".dll") == 0) n -= 4;
+        if (n >= outSize) n = outSize - 1;
+        memcpy(out, name, n);
+        out[n] = 0;
+    }
+
+    // Reads the vtable pointer of the client panel under SEH (the pointer comes from another module).
+    static const void* ReadVtable(void* client)
+    {
+        __try { return client ? *(const void* const*)client : nullptr; }
+        __except (EXCEPTION_EXECUTE_HANDLER) { return nullptr; }
+    }
+
     #define TRACE(...) do { static int s_n = 0; if (s_n++ < 24) Log(__VA_ARGS__); } while (0)
+
+    #define VGUI_TRACE_MODULE(vp, mod) TRACE("IPanel::Init(%lu) owner module = '%s'\n", (unsigned long)(vp), (mod))
 
     class CPanelImpl : public IPanel
     {
@@ -19,7 +48,12 @@ namespace vgui
         void Init(VPANEL vp, void* clientPanel) override
         {
             TRACE("IPanel::Init(%lu, client=%p)\n", vp, clientPanel);
-            if (VPanel* p = P(vp)) p->m_pClient = clientPanel;
+            if (VPanel* p = P(vp))
+            {
+                p->m_pClient = clientPanel;
+                ModuleBaseNameFromAddress(ReadVtable(clientPanel), p->m_szModule, sizeof(p->m_szModule));
+                VGUI_TRACE_MODULE(vp, p->m_szModule);
+            }
         }
 
         void SetPos(VPANEL vp, int x, int y) override
@@ -164,13 +198,18 @@ namespace vgui
 
         void* Plat(VPANEL vp) override { VPanel* p = P(vp); return p ? p->m_pPlat : nullptr; }
         void SetPlat(VPANEL vp, void* plat) override { if (VPanel* p = P(vp)) p->m_pPlat = plat; }
-        // Panel derives from IClientPanel in the SDK, so the IClientPanel* we were given
-        // in Init() is also the Panel*.
+        // Returns the Panel* only if the panel belongs to `destinationModule` (e.g. "GameUI"),
+        // otherwise NULL - exactly what vgui_controls relies on (it asserts that a parent
+        // panel from another module is not treated as its own). Panel derives from
+        // IClientPanel in the SDK, so the IClientPanel* given in Init() is also the Panel*.
+        // The module is identified by the DLL that contains the client panel's vtable.
         void* GetPanel(VPANEL vp, const char* destinationModule) override
         {
-            TRACE("IPanel::GetPanel(%lu, '%s')\n", vp, destinationModule ? destinationModule : "(null)");
             VPanel* p = P(vp);
-            return p ? p->m_pClient : nullptr;
+            if (!p || !p->m_pClient) return nullptr;
+            bool match = destinationModule && p->m_szModule[0] && _stricmp(destinationModule, p->m_szModule) == 0;
+            TRACE("IPanel::GetPanel(%lu, '%s') panel module '%s' -> %s\n", vp, destinationModule ? destinationModule : "(null)", p->m_szModule, match ? "match" : "NULL");
+            return match ? p->m_pClient : nullptr;
         }
         bool IsEnabled(VPANEL vp) override { VPanel* p = P(vp); return p ? p->IsEnabled() : false; }
         void SetEnabled(VPANEL vp, bool state) override { if (VPanel* p = P(vp)) p->SetEnabled(state); }

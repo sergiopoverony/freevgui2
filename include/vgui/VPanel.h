@@ -35,6 +35,7 @@ namespace vgui
         
         // Extra state used by IPanel (public on purpose: plain data holder)
         void* m_pClient = nullptr;       // IClientPanel* handed over in IPanel::Init
+        char m_szModule[64] = {0};       // DLL base name (no extension) that owns the client panel, e.g. "GameUI"
         void* m_pPlat = nullptr;         // SurfacePlat* (IPanel::Plat/SetPlat)
         int m_iMinWide = 0, m_iMinTall = 0, m_iZPos = 0;
         int m_iInsetL = 0, m_iInsetT = 0, m_iInsetR = 0, m_iInsetB = 0;
