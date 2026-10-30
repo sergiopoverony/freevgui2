@@ -1,0 +1,340 @@
+Microsoft (R) COFF/PE Dumper Version 14.51.36260.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file C:\Program Files (x86)\Steam\steamapps\common\Half-Life\vgui2.dll
+
+File Type: DLL
+
+  Section contains the following imports:
+
+    WINMM.dll
+              10020274 Import Address Table
+              100246EC Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                    8 PlaySoundA
+
+    SHLWAPI.dll
+              10020164 Import Address Table
+              100245DC Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                   B7 SHDeleteKeyA
+
+    KERNEL32.dll
+              100200AC Import Address Table
+              10024524 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                  518 SetEvent
+                  362 InitializeCriticalSectionAndSpinCount
+                  5DC WaitForSingleObjectEx
+                  389 IsProcessorFeaturePresent
+                  590 TerminateProcess
+                  21A GetCurrentProcess
+                  571 SetUnhandledExceptionFilter
+                  5B1 UnhandledExceptionFilter
+                   C2 CreateEventW
+                  27B GetModuleHandleW
+                  382 IsDebuggerPresent
+                  21B GetCurrentProcessId
+                  21F GetCurrentThreadId
+                  3F3 MultiByteToWideChar
+                  602 WideCharToMultiByte
+                  264 GetLastError
+                  31D GetVersionExA
+                  278 GetModuleHandleA
+                  4C8 ResetEvent
+                  2EC GetSystemTimeAsFileTime
+                  121 DisableThreadLibraryCalls
+                  366 InitializeSListHead
+                  330 GlobalAlloc
+                  2B1 GetProcAddress
+                  41A OutputDebugStringA
+                  269 GetLogicalDriveStringsA
+                  33F GlobalSize
+                  265 GetLocalTime
+                  113 DeleteCriticalSection
+                  3C1 LeaveCriticalSection
+                  134 EnterCriticalSection
+                  361 InitializeCriticalSection
+                  450 QueryPerformanceFrequency
+                  44F QueryPerformanceCounter
+                  22A GetDiskFreeSpaceExA
+                  1D9 GetCommandLineA
+                  337 GlobalFree
+                  33B GlobalLock
+                  342 GlobalUnlock
+                   89 CloseHandle
+
+    USER32.dll
+              1002016C Import Address Table
+              100245E4 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                   E8 EmptyClipboard
+                  134 GetClipboardData
+                  31E SetClipboardData
+                   4F CloseClipboard
+                  299 OpenClipboard
+                  393 SystemParametersInfoA
+                   6E CreateIconIndirect
+                  257 LoadImageA
+                   B1 DestroyIcon
+                  166 GetKeyState
+                  251 LoadCursorA
+                  370 SetWindowLongA
+                  1E4 GetWindowLongA
+                  3DB WindowFromPoint
+                   4D ClientToScreen
+                  322 SetCursor
+                  1EC GetWindowRect
+                  378 SetWindowTextW
+                  377 SetWindowTextA
+                  255 LoadIconA
+                  332 SetForegroundWindow
+                  324 SetCursorPos
+                  13F GetCursorPos
+                  2F5 RegisterWindowMessageA
+                  183 GetMessageA
+                  3A5 TranslateMessage
+                   BC DispatchMessageA
+                  3CA ValidateRect
+                  21E InvalidateRect
+                   F4 EndPaint
+                   11 BeginPaint
+                  2F8 ReleaseDC
+                  140 GetDC
+                   A6 DefWindowProcA
+                  317 SetActiveWindow
+                  365 SetTimer
+                  2F7 ReleaseCapture
+                  318 SetCapture
+                  155 GetFocus
+                  331 SetFocus
+                  231 IsIconic
+                  373 SetWindowPos
+                  115 FlashWindow
+                  385 ShowWindow
+                   B5 DestroyWindow
+                   75 CreateWindowExA
+                  3AF UnregisterClassA
+                  2D8 RegisterClassA
+                  2A6 PeekMessageA
+
+    GDI32.dll
+              10020018 Import Address Table
+              10024490 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                  254 GetBkColor
+                  183 DeleteObject
+                  180 DeleteDC
+                   5A CreateSolidBrush
+                   53 CreateRectRgn
+                   4F CreatePen
+                   31 CreateCompatibleDC
+                   30 CreateCompatibleBitmap
+                   29 CreateBitmap
+                   13 BitBlt
+                    3 AddFontResourceA
+                  325 RemoveFontResourceExA
+                  364 SelectObject
+                  36B SetBkColor
+                  27B GetDeviceCaps
+                  3A0 StretchBlt
+                  38D SetRectRgn
+                  393 SetTextColor
+                  391 SetTextAlign
+                   37 CreateDIBSection
+                  2FD MoveToEx
+                  1D6 ExtTextOutA
+                  1D7 ExtTextOutW
+                  263 GetCharABCWidthsW
+                  25E GetCharABCWidthsA
+                  1C3 EnumFontFamiliesExA
+                   3F CreateFontA
+                  319 Polygon
+                  31A Polyline
+                  396 SetViewportOrgEx
+                  2C9 GetTextColor
+                  2CE GetTextExtentPoint32A
+                  381 SetMapMode
+                  36C SetBkMode
+                  2D6 GetTextMetricsA
+                    4 AddFontResourceExA
+
+    SHELL32.dll
+              10020150 Import Address Table
+              100245C8 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                  1AA ShellExecuteA
+                  16C SHGetSpecialFolderPathA
+                  1B8 Shell_NotifyIconA
+                   27 DragQueryFileA
+
+    ole32.dll
+              1002033C Import Address Table
+              100247B4 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                  1A0 RevokeDragDrop
+                   28 CoCreateInstance
+                  170 OleInitialize
+                   5D CoInitialize
+                   8D CoUninitialize
+                  19D RegisterDragDrop
+                  19E ReleaseStgMedium
+
+    ADVAPI32.dll
+              10020000 Import Address Table
+              10024478 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                  298 RegQueryValueExA
+                  28B RegOpenKeyExA
+                  263 RegCreateKeyExA
+                  25B RegCloseKey
+                  2A8 RegSetValueExA
+
+    VCRUNTIME140.dll
+              10020234 Import Address Table
+              100246AC Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                   23 __std_terminate
+                   25 __std_type_info_destroy_list
+                    1 _CxxThrowException
+                   22 __std_exception_destroy
+                   21 __std_exception_copy
+                   35 _except_handler4_common
+                   4A strchr
+                   3D _purecall
+                   47 memmove
+                   46 memcpy
+                   4E wcschr
+                   4C strstr
+                   4B strrchr
+                   10 __CxxFrameHandler3
+                   48 memset
+
+    api-ms-win-crt-heap-l1-1-0.dll
+              100202A0 Import Address Table
+              10024718 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                   1A realloc
+                   19 malloc
+                   18 free
+                    D _heapchk
+                    8 _callnewh
+
+    api-ms-win-crt-stdio-l1-1-0.dll
+              10020300 Import Address Table
+              10024778 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                   11 __stdio_common_vswprintf
+                   10 __stdio_common_vsscanf
+                    D __stdio_common_vsprintf
+
+    api-ms-win-crt-runtime-l1-1-0.dll
+              100202CC Import Address Table
+              10024744 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                   24 _execute_onexit_table
+                   3E _register_onexit_function
+                   39 _initterm_e
+                   52 _wassert
+                   58 exit
+                   38 _initterm
+                   35 _initialize_narrow_environment
+                   19 _configure_narrow_argv
+                   1F _crt_atexit
+                   41 _seh_filter_dll
+                   36 _initialize_onexit_table
+                   17 _cexit
+
+    api-ms-win-crt-string-l1-1-0.dll
+              10020310 Import Address Table
+              10024788 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                   8E strncmp
+                   8C strncat
+                   A7 wcsncpy
+                   79 iswprint
+                   7B iswspace
+                   8F strncpy
+                   2A _stricmp
+                   2E _strlwr
+                   34 _strnicmp
+                   6E isspace
+
+    api-ms-win-crt-environment-l1-1-0.dll
+              1002028C Import Address Table
+              10024704 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                   10 getenv
+
+    api-ms-win-crt-filesystem-l1-1-0.dll
+              10020294 Import Address Table
+              1002470C Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                   20 _stat64i32
+                   19 _mkdir
+
+    api-ms-win-crt-convert-l1-1-0.dll
+              1002027C Import Address Table
+              100246F4 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                   47 _wtoi
+                   50 atoi
+                   4F atof
+
+    api-ms-win-crt-math-l1-1-0.dll
+              100202C0 Import Address Table
+              10024738 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                   6B _libm_sse2_sqrt_precise
+                   69 _libm_sse2_pow_precise
+
+    api-ms-win-crt-locale-l1-1-0.dll
+              100202B8 Import Address Table
+              10024730 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                   13 setlocale
+
+  Summary
+
+        4000 .data
+        6000 .rdata
+        3000 .reloc
+        1000 .rsrc
+       1F000 .text

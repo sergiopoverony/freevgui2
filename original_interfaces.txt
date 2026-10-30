@@ -1,0 +1,15 @@
+.?AVCLocalizedStringTable_VGUI_Localize002@vgui2@@
+.?AVCVGuiKeyValues@@
+.?AVIKeyValues@@
+.?AVKeyValues@@
+????????VGUI_Surface026
+?AVGUI_ivgui006
+KeyValues003
+VFileSystem009
+VGUI_Input004
+VGUI_InputInternal001
+VGUI_Localize002
+VGUI_Localize003
+VGUI_Panel007
+VGUI_Scheme009
+VGUI_System009

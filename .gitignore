@@ -1,0 +1,14 @@
+﻿build/
+proxy_build/
+backup/
+*.dll
+*.exe
+*.pdb
+*.log
+*.obj
+*.ilk
+*.exp
+*.lib
+.vs/
+CMakeCache.txt
+CMakeFiles/

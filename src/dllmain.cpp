@@ -1,0 +1,214 @@
+#include <windows.h>
+#include <cstring>
+#include <map>
+#include <vector>
+#include <cstdio>
+#include "vgui/VGui.h"
+#include "vgui/IPanel.h"
+#include "vgui/IInput.h"
+#include "vgui/IInputInternal.h"
+#include "vgui/IVGui.h"
+#include "vgui/IFileSystem.h"
+#include "vgui/ILocalize.h"
+#include "vgui/IKeyValues.h"
+#include "vgui/ISurface.h"
+#include "vgui/ISchemeManager.h"
+#include "vgui/ISystem.h"
+#include "vgui/VPanel.h"
+
+namespace vgui
+{
+    static FILE* g_pLogFile = nullptr;
+    
+    void Log(const char* format, ...)
+    {
+        if (!g_pLogFile)
+        {
+            g_pLogFile = fopen("vgui2_debug.log", "w");
+            if (!g_pLogFile) return;
+        }
+        
+        va_list args;
+        va_start(args, format);
+        vfprintf(g_pLogFile, format, args);
+        va_end(args);
+        fflush(g_pLogFile);
+    }
+    
+    static InterfaceReg* g_pInterfaceRegs = nullptr;
+
+    IFileSystem* g_pFileSystem = nullptr;
+    IPanel* g_pPanel = nullptr;
+    ILocalize* g_pLocalize = nullptr;
+    IKeyValues* g_pKeyValues = nullptr;
+    IInput* g_pInput = nullptr;
+
+    static std::map<HPanel, VPanel*> g_VPanelMap;
+    static HPanel g_nNextPanelID = 1;
+
+    extern void* CreateSchemeManager();
+    extern void* CreateLocalizeReal();
+    extern void* CreateFileSystemReal();
+    extern void* CreateKeyValuesReal();
+    extern void* CreateSurfaceReal();
+    extern void* CreateInputReal();
+    extern void* CreateSystemReal();
+    extern void* CreateInputInternalReal();
+    extern void* CreateVGuiReal();
+    extern void* CreatePanelReal();
+
+    static void* CreateInput() { Log("CreateInput() called\n"); return CreateInputReal(); }
+    static void* CreateFileSystem() { Log("CreateFileSystem() called\n"); return CreateFileSystemReal(); }
+    static void* CreateLocalize() { Log("CreateLocalize() called\n"); return CreateLocalizeReal(); }
+    static void* CreateKeyValues() { Log("CreateKeyValues() called\n"); return CreateKeyValuesReal(); }
+    static void* CreateSurface() { Log("CreateSurface() called\n"); return CreateSurfaceReal(); }
+    static void* CreatePanel() { Log("CreatePanel() called\n"); return CreatePanelReal(); }
+    static void* CreateSystem() { Log("CreateSystem() called\n"); return CreateSystemReal(); }
+    static void* CreateInputInternal() { Log("CreateInputInternal() called\n"); return CreateInputInternalReal(); }
+    static void* CreateVGui() { Log("CreateVGui() called\n"); return CreateVGuiReal(); }
+
+    static InterfaceReg g_PanelReg(CreatePanel, VGUI_PANEL_INTERFACE_VERSION);
+    static InterfaceReg g_InputReg(CreateInput, VGUI_INPUT_INTERFACE_VERSION);
+    static InterfaceReg g_InputInternalReg(CreateInputInternal, VGUI_INPUTINTERNAL_INTERFACE_VERSION);
+    static InterfaceReg g_VGuiReg(CreateVGui, VGUI_IVGUI_INTERFACE_VERSION);
+    static InterfaceReg g_FileSystemReg(CreateFileSystem, VFILESYSTEM_INTERFACE_VERSION);
+    static InterfaceReg g_LocalizeReg(CreateLocalize, VGUI_LOCALIZE_INTERFACE_VERSION);
+    static InterfaceReg g_KeyValuesReg(CreateKeyValues, KEYVALUES_INTERFACE_VERSION);
+    static InterfaceReg g_SurfaceReg(CreateSurface, "VGUI_Surface026");
+    static InterfaceReg g_SchemeManagerReg(CreateSchemeManager, "VGUI_Scheme009");
+    static InterfaceReg g_SystemReg(CreateSystem, VGUI_SYSTEM_INTERFACE_VERSION);
+
+    void RegisterInterface(InterfaceReg* pReg)
+    {
+        if (!pReg) return;
+        pReg->m_pNext = g_pInterfaceRegs;
+        g_pInterfaceRegs = pReg;
+    }
+
+    extern "C" VGUI_API void* CreateInterface(const char* pName, int* pReturnCode)
+    {
+        Log("CreateInterface('%s') called\n", pName ? pName : "null");
+        
+        InterfaceReg* pCur = g_pInterfaceRegs;
+        while (pCur != nullptr)
+        {
+            const char* pRegName = pCur->m_pName;
+            const char* pQueryName = pName;
+            while (*pRegName == *pQueryName)
+            {
+                if (*pRegName == 0)
+                {
+                    Log("  -> Found: %s\n", pRegName);
+                    if (pReturnCode) *pReturnCode = 0;
+                    return pCur->m_CreateFn();
+                }
+                pRegName++;
+                pQueryName++;
+            }
+            pCur = pCur->m_pNext;
+        }
+        
+        Log("  -> NOT FOUND: %s\n", pName ? pName : "null");
+        if (pReturnCode) *pReturnCode = 1;
+        return nullptr;
+    }
+
+    VGUI_API HPanel AllocatePanel(const char* className, HPanel parentId)
+    {
+        VPanel* pPanel = new VPanel();
+        HPanel id = g_nNextPanelID++;
+        pPanel->SetID(id);
+        if (className) pPanel->SetClassName(className);
+        pPanel->Init();
+
+        if (parentId != INVALID_PANEL)
+        {
+            auto it = g_VPanelMap.find(parentId);
+            if (it != g_VPanelMap.end())
+            {
+                pPanel->SetParent(it->second);
+            }
+        }
+
+        g_VPanelMap[id] = pPanel;
+        return id;
+    }
+
+    VGUI_API void FreePanel(HPanel panel)
+    {
+        auto it = g_VPanelMap.find(panel);
+        if (it != g_VPanelMap.end())
+        {
+            delete it->second;
+            g_VPanelMap.erase(it);
+        }
+    }
+
+    VGUI_API VPanel* GetVPanel(HPanel panel)
+    {
+        auto it = g_VPanelMap.find(panel);
+        if (it != g_VPanelMap.end())
+        {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    void InitializeInterfaces(CreateInterfaceFn* pFactoryList, int nFactoryCount)
+    {
+        Log("InitializeInterfaces() called with %d factories\n", nFactoryCount);
+        
+        if (!pFactoryList || nFactoryCount <= 0) return;
+        
+        for (int i = 0; i < nFactoryCount; i++)
+        {
+            if (!pFactoryList[i]) continue;
+            void* p;
+            
+            p = pFactoryList[i]("VFileSystem009", nullptr);
+            if (p) g_pFileSystem = static_cast<IFileSystem*>(p);
+            
+            p = pFactoryList[i]("VGUI_Panel007", nullptr);
+            if (p) g_pPanel = static_cast<IPanel*>(p);
+            
+            p = pFactoryList[i]("KeyValues003", nullptr);
+            if (p) g_pKeyValues = static_cast<IKeyValues*>(p);
+            
+            p = pFactoryList[i]("VGUI_Localize003", nullptr);
+            if (p) g_pLocalize = static_cast<ILocalize*>(p);
+            
+            p = pFactoryList[i]("VGUI_Input004", nullptr);
+            if (p) g_pInput = static_cast<IInput*>(p);
+        }
+    }
+}
+
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+{
+    switch (ul_reason_for_call)
+    {
+    case DLL_PROCESS_ATTACH:
+        DisableThreadLibraryCalls(hModule);
+        vgui::Log("=== VGUI2 DLL Loaded ===\n");
+        vgui::RegisterInterface(&vgui::g_PanelReg);
+        vgui::RegisterInterface(&vgui::g_InputReg);
+        vgui::RegisterInterface(&vgui::g_InputInternalReg);
+        vgui::RegisterInterface(&vgui::g_VGuiReg);
+        vgui::RegisterInterface(&vgui::g_FileSystemReg);
+        vgui::RegisterInterface(&vgui::g_LocalizeReg);
+        vgui::RegisterInterface(&vgui::g_KeyValuesReg);
+        vgui::RegisterInterface(&vgui::g_SurfaceReg);
+        vgui::RegisterInterface(&vgui::g_SchemeManagerReg);
+        vgui::RegisterInterface(&vgui::g_SystemReg);
+        break;
+    case DLL_PROCESS_DETACH:
+        vgui::Log("=== VGUI2 DLL Unloaded ===\n");
+        if (vgui::g_pLogFile)
+        {
+            fclose(vgui::g_pLogFile);
+            vgui::g_pLogFile = nullptr;
+        }
+        break;
+    }
+    return TRUE;
+}
