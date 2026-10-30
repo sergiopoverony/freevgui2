@@ -32,7 +32,7 @@ add_library(vgui2 SHARED
 )
 
 # Linker map (vgui2.map) lets us translate RVAs from vgui2_debug.log into function names
-set_target_properties(vgui2 PROPERTIES LINK_FLAGS "/MAP")
+set_target_properties(vgui2 PROPERTIES LINK_FLAGS "/MAP:vgui2.map /DEBUG /OPT:NOICF")
 
 target_include_directories(vgui2 PRIVATE include)
 target_compile_definitions(vgui2 PRIVATE WIN32 _WINDOWS _USRDLL vgui2_EXPORTS)
