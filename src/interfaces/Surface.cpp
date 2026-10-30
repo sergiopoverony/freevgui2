@@ -1,365 +1,177 @@
 #include "vgui/ISurface.h"
+#include "vgui/Trace.h"
 #include <windows.h>
-#include <map>
+#include <cstring>
 #include <string>
 #include <vector>
-#include <mmsystem.h>
-
-#pragma comment(lib, "winmm.lib")
-
-#undef CreateFont
-#undef PlaySound
 
 namespace vgui
 {
-    struct FontInfo
-    {
-        HFONT hFont;
-        int tall;
-        int weight;
-        std::string name;
-    };
-
-    struct TextureInfo
-    {
-        HDC hMemDC;
-        HBITMAP hBitmap;
-        int width;
-        int height;
-    };
-
+    // Surface026. This is a *logging stub with sane values*: it keeps the vtable
+    // identical to the original so the engine can call every slot safely, and reports
+    // which slots are actually used (vgui2_debug.log). Real drawing comes later.
     class CSurface : public ISurface
     {
     public:
-        CSurface()
-            : m_hWnd(nullptr)
-            , m_hDC(nullptr)
-            , m_nEmbeddedPanel(INVALID_PANEL)
-            , m_nCurrentFont(INVALID_FONT)
-            , m_nCurrentTexture(0)
-            , m_nNextTextureID(1)
-            , m_nNextFontID(1)
-            , m_nTextX(0), m_nTextY(0)
-            , m_bCursorLocked(false)
+        CSurface() : m_hEmbedded(0), m_nNextFont(1), m_nNextTexture(1), m_nModal(0), m_bCursorLocked(false) {}
+
+        void Shutdown() override { VGUI_TRACE("ISurface::Shutdown\n"); }
+        void RunFrame() override {}
+        VPANEL GetEmbeddedPanel() override { return m_hEmbedded; }
+        void SetEmbeddedPanel(VPANEL pPanel) override { VGUI_TRACE("ISurface::SetEmbeddedPanel(%lu)\n", pPanel); m_hEmbedded = pPanel; }
+        void PushMakeCurrent(VPANEL panel, bool useInsets) override { VGUI_TRACE("ISurface::PushMakeCurrent(%lu,%d)\n", panel, (int)useInsets); }
+        void PopMakeCurrent(VPANEL panel) override { VGUI_TRACE("ISurface::PopMakeCurrent(%lu)\n", panel); }
+
+        void DrawSetColorC(Color col) override {}
+        void DrawSetColor(int r, int g, int b, int a) override {}
+        void DrawFilledRect(int x0, int y0, int x1, int y1) override {}
+        void DrawOutlinedRect(int x0, int y0, int x1, int y1) override {}
+        void DrawLine(int x0, int y0, int x1, int y1) override {}
+        void DrawPolyLine(int* px, int* py, int numPoints) override {}
+        void DrawSetTextFont(HFont font) override { m_hTextFont = font; }
+        void DrawSetTextColorC(Color col) override {}
+        void DrawSetTextColor(int r, int g, int b, int a) override {}
+        void DrawSetTextPos(int x, int y) override { m_nTextX = x; m_nTextY = y; }
+        void DrawGetTextPos(int& x, int& y) override { x = m_nTextX; y = m_nTextY; }
+        void DrawPrintText(const wchar_t* text, int textLen) override {}
+        void DrawUnicodeChar(wchar_t wch) override {}
+        int Slot20(int a1) override { VGUI_TRACE("ISurface::Slot20(%d)\n", a1); return 0; }
+        void DrawFlushText() override {}
+
+        void* CreateHTMLWindow(void* events, VPANEL context) override { VGUI_TRACE("ISurface::CreateHTMLWindow(%p,%lu)\n", events, context); return nullptr; }
+        void PaintHTMLWindow(void* htmlwin) override { VGUI_TRACE("ISurface::PaintHTMLWindow(%p)\n", htmlwin); }
+        void DeleteHTMLWindow(void* htmlwin) override { VGUI_TRACE("ISurface::DeleteHTMLWindow(%p)\n", htmlwin); }
+
+        void DrawSetTextureFile(int id, const char* filename, int hardwareFilter, bool forceReload) override { VGUI_TRACE("ISurface::DrawSetTextureFile(%d,'%s')\n", id, filename ? filename : "(null)"); }
+        void DrawSetTextureRGBA(int id, const unsigned char* rgba, int wide, int tall, int hardwareFilter, int forceReload) override { VGUI_TRACE("ISurface::DrawSetTextureRGBA(%d,%dx%d)\n", id, wide, tall); }
+        void DrawSetTexture(int id) override {}
+        void DrawGetTextureSize(int id, int& wide, int& tall) override { wide = tall = 0; }
+        void DrawTexturedRect(int x0, int y0, int x1, int y1) override {}
+        bool IsTextureIDValid(int id) override { return id > 0 && id < m_nNextTexture; }
+        int CreateNewTextureID(bool procedural) override { return m_nNextTexture++; }
+
+        void GetScreenSize(int& wide, int& tall) override
         {
-            m_DrawColor.r = 255;
-            m_DrawColor.g = 255;
-            m_DrawColor.b = 255;
-            m_DrawColor.a = 255;
-            m_TextColor.r = 255;
-            m_TextColor.g = 255;
-            m_TextColor.b = 255;
-            m_TextColor.a = 255;
+            wide = GetSystemMetrics(SM_CXSCREEN);
+            tall = GetSystemMetrics(SM_CYSCREEN);
+            if (wide <= 0) wide = 640;
+            if (tall <= 0) tall = 480;
         }
+        void SetAsTopMost(VPANEL panel, bool state) override {}
+        void BringToFront(VPANEL panel) override {}
+        void SetForegroundWindow(VPANEL panel) override {}
+        void SetPanelVisible(VPANEL panel, bool state) override {}
+        void SetMinimized(VPANEL panel, bool state) override {}
+        bool IsMinimized(VPANEL panel) override { return false; }
+        void FlashWindow(VPANEL panel, bool state) override {}
+        void SetTitle(VPANEL panel, const wchar_t* title) override {}
+        void SetAsToolBar(VPANEL panel, bool state) override {}
+        void CreatePopup(VPANEL panel, bool minimised, bool showTaskbarIcon, bool disabled, bool mouseInput, bool kbInput) override { VGUI_TRACE("ISurface::CreatePopup(%lu)\n", panel); }
+        void SwapBuffers(VPANEL panel) override {}
+        void Invalidate(VPANEL panel) override {}
+        void SetCursor(HCursor cursor) override {}
+        bool IsCursorVisible() override { return true; }
+        void ApplyChanges() override {}
+        bool IsWithin(int x, int y) override { return true; }
+        bool HasFocus() override { return true; }
+        bool SupportsFeature(int feature) override { VGUI_TRACE("ISurface::SupportsFeature(%d)\n", feature); return false; }
+        void RestrictPaintToSinglePanel(VPANEL panel) override {}
+        void SetModalPanel(VPANEL panel) override { m_nModal = panel; }
+        VPANEL GetModalPanel() override { return m_nModal; }
+        void UnlockCursor() override { m_bCursorLocked = false; }
+        void LockCursor() override { m_bCursorLocked = true; }
+        void SetTranslateExtendedKeys(bool state) override {}
+        VPANEL GetTopmostPopup() override { return 0; }
+        void SetTopLevelFocus(VPANEL panel) override {}
 
-        ~CSurface()
+        HFont CreateFont() override { return m_nNextFont++; }
+        bool AddGlyphSetToFont(HFont font, const char* windowsFontName, int tall, int weight, int blur, int scanlines, int flags, int lowRange, int highRange) override
         {
-            Shutdown();
-        }
-
-        void Shutdown() override
-        {
-            for (auto& pair : m_Fonts)
-            {
-                if (pair.second.hFont) DeleteObject(pair.second.hFont);
-            }
-            m_Fonts.clear();
-
-            for (auto& pair : m_Textures)
-            {
-                if (pair.second.hBitmap) DeleteObject(pair.second.hBitmap);
-                if (pair.second.hMemDC) DeleteDC(pair.second.hMemDC);
-            }
-            m_Textures.clear();
-
-            m_hWnd = nullptr;
-            m_hDC = nullptr;
-        }
-
-        void RunFrame() override
-        {
-        }
-
-        HPanel GetEmbeddedPanel() override
-        {
-            return m_nEmbeddedPanel;
-        }
-
-        void SetEmbeddedPanel(HPanel panel) override
-        {
-            m_nEmbeddedPanel = panel;
-        }
-
-        void PushMakeCurrent(HPanel panel, bool force) override
-        {
-        }
-
-        void PopMakeCurrent() override
-        {
-        }
-
-        void DrawSetColor(int r, int g, int b, int a) override
-        {
-            m_DrawColor.r = (unsigned char)r;
-            m_DrawColor.g = (unsigned char)g;
-            m_DrawColor.b = (unsigned char)b;
-            m_DrawColor.a = (unsigned char)a;
-        }
-
-        void DrawFilledRect(int x0, int y0, int x1, int y1) override
-        {
-            if (!m_hDC) return;
-            COLORREF color = RGB(m_DrawColor.r, m_DrawColor.g, m_DrawColor.b);
-            HBRUSH hBrush = CreateSolidBrush(color);
-            RECT rc = { x0, y0, x1, y1 };
-            FillRect(m_hDC, &rc, hBrush);
-            DeleteObject(hBrush);
-        }
-
-        void DrawOutlinedRect(int x0, int y0, int x1, int y1) override
-        {
-            if (!m_hDC) return;
-            HPEN hPen = CreatePen(PS_SOLID, 1, RGB(m_DrawColor.r, m_DrawColor.g, m_DrawColor.b));
-            HBRUSH hOldBrush = (HBRUSH)SelectObject(m_hDC, GetStockObject(NULL_BRUSH));
-            HPEN hOldPen = (HPEN)SelectObject(m_hDC, hPen);
-            Rectangle(m_hDC, x0, y0, x1, y1);
-            SelectObject(m_hDC, hOldPen);
-            SelectObject(m_hDC, hOldBrush);
-            DeleteObject(hPen);
-        }
-
-        void DrawLine(int x0, int y0, int x1, int y1) override
-        {
-            if (!m_hDC) return;
-            HPEN hPen = CreatePen(PS_SOLID, 1, RGB(m_DrawColor.r, m_DrawColor.g, m_DrawColor.b));
-            HPEN hOldPen = (HPEN)SelectObject(m_hDC, hPen);
-            MoveToEx(m_hDC, x0, y0, nullptr);
-            LineTo(m_hDC, x1, y1);
-            SelectObject(m_hDC, hOldPen);
-            DeleteObject(hPen);
-        }
-
-        void DrawPolyLine(int* px, int* py, int numPoints) override
-        {
-            if (!m_hDC || numPoints < 2) return;
-            HPEN hPen = CreatePen(PS_SOLID, 1, RGB(m_DrawColor.r, m_DrawColor.g, m_DrawColor.b));
-            HPEN hOldPen = (HPEN)SelectObject(m_hDC, hPen);
-            MoveToEx(m_hDC, px[0], py[0], nullptr);
-            for (int i = 1; i < numPoints; i++)
-            {
-                LineTo(m_hDC, px[i], py[i]);
-            }
-            SelectObject(m_hDC, hOldPen);
-            DeleteObject(hPen);
-        }
-
-        void DrawSetTextFont(HFont font) override
-        {
-            m_nCurrentFont = font;
-        }
-
-        void DrawSetTextColor(int r, int g, int b, int a) override
-        {
-            m_TextColor.r = (unsigned char)r;
-            m_TextColor.g = (unsigned char)g;
-            m_TextColor.b = (unsigned char)b;
-            m_TextColor.a = (unsigned char)a;
-        }
-
-        void DrawSetTextPos(int x, int y) override
-        {
-            m_nTextX = x;
-            m_nTextY = y;
-        }
-
-        void DrawPrintText(const wchar_t* text, int textLen) override
-        {
-            if (!m_hDC || !text) return;
-
-            auto it = m_Fonts.find(m_nCurrentFont);
-            HFONT hFont = nullptr;
-            if (it != m_Fonts.end())
-            {
-                hFont = it->second.hFont;
-            }
-
-            HFONT hOldFont = (HFONT)SelectObject(m_hDC, hFont ? hFont : (HFONT)GetStockObject(DEFAULT_GUI_FONT));
-            SetTextColor(m_hDC, RGB(m_TextColor.r, m_TextColor.g, m_TextColor.b));
-            SetBkMode(m_hDC, TRANSPARENT);
-            TextOutW(m_hDC, m_nTextX, m_nTextY, text, textLen >= 0 ? textLen : (int)wcslen(text));
-            SelectObject(m_hDC, hOldFont);
-
-            SIZE size;
-            GetTextExtentPoint32W(m_hDC, text, textLen >= 0 ? textLen : (int)wcslen(text), &size);
-            m_nTextX += size.cx;
-        }
-
-        void DrawSetTexture(int id) override
-        {
-            m_nCurrentTexture = id;
-        }
-
-        void DrawTexturedRect(int x0, int y0, int x1, int y1) override
-        {
-            auto it = m_Textures.find(m_nCurrentTexture);
-            if (it == m_Textures.end() || !m_hDC) return;
-
-            BitBlt(m_hDC, x0, y0, x1 - x0, y1 - y0, it->second.hMemDC, 0, 0, SRCCOPY);
-        }
-
-        int CreateNewTextureID(bool procedural) override
-        {
-            int id = m_nNextTextureID++;
-            TextureInfo info = { nullptr, nullptr, 0, 0 };
-            m_Textures[id] = info;
-            return id;
-        }
-
-        void UnlockCursor() override
-        {
-            if (m_bCursorLocked)
-            {
-                ShowCursor(TRUE);
-                m_bCursorLocked = false;
-            }
-        }
-
-        void LockCursor() override
-        {
-            if (!m_bCursorLocked)
-            {
-                ShowCursor(FALSE);
-                m_bCursorLocked = true;
-            }
-        }
-
-        HFont CreateFont() override
-        {
-            HFont id = m_nNextFontID++;
-            FontInfo info = { nullptr, 0, 0, "" };
-            m_Fonts[id] = info;
-            return id;
-        }
-
-        bool SetFontGlyphSet(HFont font, const char* windowsFontName, int tall, int weight, int blur, int scanlines, int flags) override
-        {
-            if (!windowsFontName) return false;
-
-            auto it = m_Fonts.find(font);
-            if (it == m_Fonts.end()) return false;
-
-            if (it->second.hFont)
-            {
-                DeleteObject(it->second.hFont);
-            }
-
-            HFONT hFont = ::CreateFontA(
-                tall, 0, 0, 0,
-                weight,
-                (flags & 0x01) ? TRUE : FALSE,
-                (flags & 0x02) ? TRUE : FALSE,
-                (flags & 0x04) ? TRUE : FALSE,
-                DEFAULT_CHARSET,
-                OUT_TT_PRECIS,
-                CLIP_DEFAULT_PRECIS,
-                ANTIALIASED_QUALITY,
-                DEFAULT_PITCH | FF_DONTCARE,
-                windowsFontName
-            );
-
-            if (!hFont) return false;
-
-            it->second.hFont = hFont;
-            it->second.tall = tall;
-            it->second.weight = weight;
-            it->second.name = windowsFontName;
-
+            VGUI_TRACE("ISurface::AddGlyphSetToFont(%lu,'%s',tall=%d)\n", font, windowsFontName ? windowsFontName : "(null)", tall);
+            SetTall(font, tall);
             return true;
         }
-
+        bool AddCustomFontFile(const char* fontFileName) override { VGUI_TRACE("ISurface::AddCustomFontFile('%s')\n", fontFileName ? fontFileName : "(null)"); return true; }
+        int GetFontTall(HFont font) override { return FontTall(font); }
+        void GetCharABCwide(HFont font, int ch, int& a, int& b, int& c) override { a = 0; b = FontTall(font) / 2; c = 0; }
+        int GetCharacterWidth(HFont font, int ch) override { return FontTall(font) / 2; }
         void GetTextSize(HFont font, const wchar_t* text, int& wide, int& tall) override
         {
-            wide = tall = 0;
-            if (!text || !m_hDC) return;
-
-            HFONT hFont = nullptr;
-            auto it = m_Fonts.find(font);
-            if (it != m_Fonts.end())
-            {
-                hFont = it->second.hFont;
-            }
-
-            HFONT hOldFont = (HFONT)SelectObject(m_hDC, hFont ? hFont : (HFONT)GetStockObject(DEFAULT_GUI_FONT));
-            SIZE size;
-            GetTextExtentPoint32W(m_hDC, text, (int)wcslen(text), &size);
-            wide = size.cx;
-            tall = size.cy;
-            SelectObject(m_hDC, hOldFont);
+            int len = text ? (int)wcslen(text) : 0;
+            tall = FontTall(font);
+            wide = len * (tall / 2);
         }
+        VPANEL GetNotifyPanel() override { return 0; }
+        void SetNotifyIcon(VPANEL context, HTexture icon, VPANEL panelToReceiveMessages, const char* text) override {}
+        void PlaySound(const char* fileName) override { VGUI_TRACE("ISurface::PlaySound('%s')\n", fileName ? fileName : "(null)"); }
+        int GetPopupCount() override { return 0; }
+        VPANEL GetPopup(int index) override { return 0; }
+        bool ShouldPaintChildPanel(VPANEL childPanel) override { return true; }
+        bool RecreateContext(VPANEL panel) override { return true; }
+        void AddPanel(VPANEL panel) override { VGUI_TRACE("ISurface::AddPanel(%lu)\n", panel); }
+        void ReleasePanel(VPANEL panel) override { VGUI_TRACE("ISurface::ReleasePanel(%lu)\n", panel); }
+        void MovePopupToFront(VPANEL panel) override {}
+        void MovePopupToBack(VPANEL panel) override {}
+        void SolveTraverse(VPANEL panel, bool forceApplySchemeSettings) override { VGUI_TRACE("ISurface::SolveTraverse(%lu)\n", panel); }
+        void PaintTraverse(VPANEL panel) override { VGUI_TRACE("ISurface::PaintTraverse(%lu)\n", panel); }
+        void EnableMouseCapture(VPANEL panel, bool state) override {}
+        void GetWorkspaceBounds(int& x, int& y, int& wide, int& tall) override { x = y = 0; GetScreenSize(wide, tall); }
+        void GetAbsoluteWindowBounds(int& x, int& y, int& wide, int& tall) override { x = y = 0; GetScreenSize(wide, tall); }
+        void GetProportionalBase(int& width, int& height) override { width = 640; height = 480; }
+        bool CalculateMouseVisible() override { return false; }
+        bool NeedKBInput() override { return false; }
+        bool HasCursorPosFunctions() override { return true; }
+        void SurfaceGetCursorPos(int& x, int& y) override { POINT pt = {0, 0}; ::GetCursorPos(&pt); x = pt.x; y = pt.y; }
+        void SurfaceSetCursorPos(int x, int y) override { ::SetCursorPos(x, y); }
 
-        void PlaySound(const char* fileName) override
-        {
-            if (fileName)
-            {
-                ::PlaySoundA(fileName, nullptr, SND_FILENAME | SND_ASYNC);
-            }
-        }
-
-        int GetPopupCount() override
-        {
-            return (int)m_Popups.size();
-        }
-
-        HPanel GetPopup(int index) override
-        {
-            if (index < 0 || index >= (int)m_Popups.size()) return INVALID_PANEL;
-            return m_Popups[index];
-        }
-
-        int GetModalPanel() override
-        {
-            return INVALID_PANEL;
-        }
-
-        void SetCursor(HCursor cursor) override
-        {
-        }
-
-        void SetEmbeddedWindow(void* hwnd) override
-        {
-            m_hWnd = (HWND)hwnd;
-            if (m_hWnd)
-            {
-                m_hDC = GetDC(m_hWnd);
-            }
-        }
-
-        void* GetEmbeddedWindow() override
-        {
-            return m_hWnd;
-        }
+        // unnamed slots 88..106 (argument counts verified against the original)
+        int Slot88(int a1, int a2) override { VGUI_TRACE("ISurface::Slot88\n"); return 0; }
+        int Slot89(int a1, int a2) override { VGUI_TRACE("ISurface::Slot89\n"); return 0; }
+        int Slot90(int a1) override { VGUI_TRACE("ISurface::Slot90\n"); return 0; }
+        int Slot91(int a1) override { VGUI_TRACE("ISurface::Slot91\n"); return 0; }
+        int Slot92() override { VGUI_TRACE("ISurface::Slot92\n"); return 0; }
+        int Slot93(int a1) override { VGUI_TRACE("ISurface::Slot93\n"); return 0; }
+        int Slot94(int a1, int a2, int a3, int a4, int a5, int a6) override { VGUI_TRACE("ISurface::Slot94\n"); return 0; }
+        int Slot95(int a1, int a2, int a3, int a4) override { VGUI_TRACE("ISurface::Slot95\n"); return 0; }
+        int Slot96(int a1, int a2, int a3, int a4) override { VGUI_TRACE("ISurface::Slot96\n"); return 0; }
+        int Slot97(int a1, int a2) override { VGUI_TRACE("ISurface::Slot97\n"); return 0; }
+        int Slot98() override { VGUI_TRACE("ISurface::Slot98\n"); return 0; }
+        int Slot99(int a1) override { VGUI_TRACE("ISurface::Slot99\n"); return 0; }
+        int Slot100(int a1) override { VGUI_TRACE("ISurface::Slot100\n"); return 0; }
+        int Slot101(int a1) override { VGUI_TRACE("ISurface::Slot101\n"); return 0; }
+        int Slot102(int a1) override { VGUI_TRACE("ISurface::Slot102\n"); return 0; }
+        int Slot103(int a1, int a2) override { VGUI_TRACE("ISurface::Slot103\n"); return 0; }
+        int Slot104(int a1, int a2) override { VGUI_TRACE("ISurface::Slot104\n"); return 0; }
+        int Slot105(int a1, int a2) override { VGUI_TRACE("ISurface::Slot105\n"); return 0; }
+        int Slot106(int a1) override { VGUI_TRACE("ISurface::Slot106\n"); return 0; }
 
     private:
-        HWND m_hWnd;
-        HDC m_hDC;
-        HPanel m_nEmbeddedPanel;
-        HFont m_nCurrentFont;
-        int m_nCurrentTexture;
-        int m_nNextTextureID;
-        HFont m_nNextFontID;
-        int m_nTextX, m_nTextY;
+        int FontTall(HFont font) const
+        {
+            return (font >= 1 && font <= m_Tall.size() && m_Tall[font - 1] > 0) ? m_Tall[font - 1] : 16;
+        }
+        void SetTall(HFont font, int tall)
+        {
+            if (font < 1 || font > 4096) return;
+            if (m_Tall.size() < font) m_Tall.resize(font, 0);
+            m_Tall[font - 1] = tall;
+        }
+
+        VPANEL m_hEmbedded;
+        HFont m_nNextFont;
+        int m_nNextTexture;
+        VPANEL m_nModal;
         bool m_bCursorLocked;
-        Color m_DrawColor;
-        Color m_TextColor;
-        std::map<HFont, FontInfo> m_Fonts;
-        std::map<int, TextureInfo> m_Textures;
-        std::vector<HPanel> m_Popups;
+        HFont m_hTextFont = 0;
+        int m_nTextX = 0, m_nTextY = 0;
+        std::vector<int> m_Tall;
     };
 
     static CSurface g_SurfaceInstance;
 
     void* CreateSurfaceReal()
     {
+        Log("CreateSurfaceReal() returning %p\n", &g_SurfaceInstance);
         return &g_SurfaceInstance;
     }
 }

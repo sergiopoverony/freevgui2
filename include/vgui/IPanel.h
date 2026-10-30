@@ -9,8 +9,8 @@ namespace vgui
     // vtable. Slot 0 is the virtual destructor (IBaseInterface) and slot 1 is
     // Init(VPANEL, IClientPanel*): confirmed by the game log, where the engine's
     // first call arrived as (1, <pointer>, <garbage>) into what we had as SetPos.
-    // Everything below slot 1 follows the Source SDK layout; verify against the
-    // original vgui2.dll and the "IPanel::" lines of vgui2_debug.log.
+    // All 60 slots were verified against the original vgui2.dll: argument counts match
+    // slot by slot (original/vtable_signatures.txt).
     class IPanel
     {
     public:
@@ -72,6 +72,8 @@ namespace vgui
         virtual void* GetPanel(VPANEL vguiPanel, const char* destinationModule) = 0;           // 55
         virtual bool IsEnabled(VPANEL vguiPanel) = 0;                                          // 56
         virtual void SetEnabled(VPANEL vguiPanel, bool state) = 0;                             // 57
+        virtual int Slot58(VPANEL vguiPanel) = 0;                                              // 58 (not identified; 1 argument in the original)
+        virtual int Slot59(VPANEL vguiPanel) = 0;                                              // 59 (not identified; 1 argument in the original)
     };
 
     #define VGUI_PANEL_INTERFACE_VERSION "VGUI_Panel007"

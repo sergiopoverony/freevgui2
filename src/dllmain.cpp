@@ -48,7 +48,7 @@ namespace vgui
 
     extern void* CreateSchemeManager();
     extern void* CreateLocalizeReal();
-    extern void* CreateFileSystemReal();
+    extern void* CreateLocalize002Real();
     extern void* CreateKeyValuesReal();
     extern void* CreateSurfaceReal();
     extern void* CreateInputReal();
@@ -58,7 +58,7 @@ namespace vgui
     extern void* CreatePanelReal();
 
     static void* CreateInput() { Log("CreateInput() called\n"); return CreateInputReal(); }
-    static void* CreateFileSystem() { Log("CreateFileSystem() called\n"); return CreateFileSystemReal(); }
+    static void* CreateLocalize002() { Log("CreateLocalize002() called\n"); return CreateLocalize002Real(); }
     static void* CreateLocalize() { Log("CreateLocalize() called\n"); return CreateLocalizeReal(); }
     static void* CreateKeyValues() { Log("CreateKeyValues() called\n"); return CreateKeyValuesReal(); }
     static void* CreateSurface() { Log("CreateSurface() called\n"); return CreateSurfaceReal(); }
@@ -71,8 +71,11 @@ namespace vgui
     static InterfaceReg g_InputReg(CreateInput, VGUI_INPUT_INTERFACE_VERSION);
     static InterfaceReg g_InputInternalReg(CreateInputInternal, VGUI_INPUTINTERNAL_INTERFACE_VERSION);
     static InterfaceReg g_VGuiReg(CreateVGui, VGUI_IVGUI_INTERFACE_VERSION);
-    static InterfaceReg g_FileSystemReg(CreateFileSystem, VFILESYSTEM_INTERFACE_VERSION);
+    // NOTE: the original vgui2.dll does NOT provide "VFileSystem009" (it only queries it from
+    // the engine's factories), so it must not be registered here. It does provide Surface026
+    // and both Localize002/Localize003. Registered set = the 10 interfaces of the original.
     static InterfaceReg g_LocalizeReg(CreateLocalize, VGUI_LOCALIZE_INTERFACE_VERSION);
+    static InterfaceReg g_Localize002Reg(CreateLocalize002, "VGUI_Localize002");
     static InterfaceReg g_KeyValuesReg(CreateKeyValues, KEYVALUES_INTERFACE_VERSION);
     static InterfaceReg g_SurfaceReg(CreateSurface, "VGUI_Surface026");
     static InterfaceReg g_SchemeManagerReg(CreateSchemeManager, "VGUI_Scheme009");
@@ -276,8 +279,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         vgui::RegisterInterface(&vgui::g_InputReg);
         vgui::RegisterInterface(&vgui::g_InputInternalReg);
         vgui::RegisterInterface(&vgui::g_VGuiReg);
-        vgui::RegisterInterface(&vgui::g_FileSystemReg);
         vgui::RegisterInterface(&vgui::g_LocalizeReg);
+        vgui::RegisterInterface(&vgui::g_Localize002Reg);
         vgui::RegisterInterface(&vgui::g_KeyValuesReg);
         vgui::RegisterInterface(&vgui::g_SurfaceReg);
         vgui::RegisterInterface(&vgui::g_SchemeManagerReg);

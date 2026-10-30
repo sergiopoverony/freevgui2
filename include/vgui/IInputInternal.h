@@ -1,28 +1,35 @@
 #pragma once
-#include "VGui.h"
+#include "IInput.h"
 
 namespace vgui
 {
-    class IInputInternal
+    typedef int HInputContext;
+
+    // VGUI_InputInternal001: IInput + slots 22..40 (41 slots total).
+    // Argument counts verified against the original; names follow the Source SDK.
+    class IInputInternal : public IInput
     {
     public:
-        virtual ~IInputInternal() {}
-        virtual void Init() = 0;
-        virtual void Shutdown() = 0;
-        virtual void RunFrame() = 0;
-        virtual void OnKeyCodePressed(int code, bool isRepeat) = 0;
-        virtual void OnKeyCodeReleased(int code) = 0;
-        virtual void OnMousePressed(int code) = 0;
-        virtual void OnMouseReleased(int code) = 0;
-        virtual void OnMouseWheeled(int delta) = 0;
-        virtual void OnCursorMoved(int x, int y) = 0;
-        virtual void OnCursorEntered(int panel) = 0;
-        virtual void OnCursorExited(int panel) = 0;
-        virtual void SetFocus(HPanel panel) = 0;
-        virtual HPanel GetFocus() = 0;
-        virtual void SetMouseCapture(HPanel panel) = 0;
-        virtual HPanel GetMouseCapture() = 0;
+        virtual void RunFrame() = 0;                                                  // 22
+        virtual void UpdateMouseFocus(int x, int y) = 0;                              // 23
+        virtual void PanelDeleted(VPANEL panel) = 0;                                  // 24
+        virtual bool InternalCursorMoved(int x, int y) = 0;                           // 25
+        virtual bool InternalMousePressed(MouseCode code) = 0;                        // 26
+        virtual bool InternalMouseDoublePressed(MouseCode code) = 0;                  // 27
+        virtual bool InternalMouseReleased(MouseCode code) = 0;                       // 28
+        virtual bool InternalMouseWheeled(int delta) = 0;                             // 29
+        virtual bool InternalKeyCodePressed(KeyCode code) = 0;                        // 30
+        virtual void InternalKeyCodeTyped(KeyCode code) = 0;                          // 31
+        virtual void InternalKeyTyped(wchar_t unichar) = 0;                           // 32
+        virtual bool InternalKeyCodeReleased(KeyCode code) = 0;                       // 33
+        virtual HInputContext CreateInputContext() = 0;                               // 34
+        virtual void DestroyInputContext(HInputContext context) = 0;                  // 35
+        virtual void AssociatePanelWithInputContext(HInputContext context, VPANEL pRoot) = 0; // 36
+        virtual void ActivateInputContext(HInputContext context) = 0;                 // 37
+        virtual VPANEL GetMouseCapture() = 0;                                         // 38
+        virtual bool IsChildOfModalPanel(VPANEL panel) = 0;                           // 39
+        virtual void ResetInputContext(HInputContext context) = 0;                    // 40
     };
-    
+
     #define VGUI_INPUTINTERNAL_INTERFACE_VERSION "VGUI_InputInternal001"
 }

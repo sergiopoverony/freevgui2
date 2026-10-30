@@ -1,120 +1,74 @@
 #include "vgui/ISchemeManager.h"
-#include "vgui/IKeyValues.h"
+#include "vgui/Trace.h"
 #include <map>
 #include <string>
-#include <cstdlib>
-#include <cstring>
 
 namespace vgui
 {
+    // Logging stub with sane values. GetIScheme() returns null for now: the IScheme
+    // object has not been reconstructed yet (its vtable was not found among the
+    // RTTI vtables of the original); a crash here would show up in the log.
     class CSchemeManager : public ISchemeManager
     {
     public:
-        struct Scheme
+        CSchemeManager() : m_nNext(2) { m_Tags[""] = 1; }
+
+        HScheme LoadSchemeFromFile(const char* fileName, const char* tag) override
         {
-            std::string m_Name;
-            std::map<std::string, std::string> m_Colors;
-            std::map<std::string, HFont> m_Fonts;
-            bool m_bProportional;
-        };
-        
-        CSchemeManager()
-        {
-            m_nNextSchemeID = 1;
+            VGUI_TRACE("ISchemeManager::LoadSchemeFromFile('%s','%s')\n", fileName ? fileName : "(null)", tag ? tag : "(null)");
+            std::string t = tag ? tag : "";
+            auto it = m_Tags.find(t);
+            if (it != m_Tags.end()) return it->second;
+            HScheme h = m_nNext++;
+            m_Tags[t] = h;
+            return h;
         }
-        
-        ~CSchemeManager()
+        void ReloadSchemes() override { VGUI_TRACE("ISchemeManager::ReloadSchemes\n"); }
+        HScheme GetDefaultScheme() override { return 1; }
+        HScheme GetScheme(const char* tag) override
         {
-            for (auto& pair : m_Schemes)
-            {
-                delete pair.second;
-            }
+            VGUI_TRACE("ISchemeManager::GetScheme('%s')\n", tag ? tag : "(null)");
+            auto it = m_Tags.find(tag ? tag : "");
+            return it != m_Tags.end() ? it->second : 1;
         }
-        
-        HScheme GetScheme(const char* schemeName, bool proportional) override
+        void* GetImage(const char* imageName, bool hardwareFiltered) override
         {
-            if (!schemeName) return 0;
-            
-            for (auto& pair : m_Schemes)
-            {
-                if (pair.second->m_Name == schemeName && pair.second->m_bProportional == proportional)
-                {
-                    return pair.first;
-                }
-            }
-            
-            Scheme* pScheme = new Scheme();
-            pScheme->m_Name = schemeName;
-            pScheme->m_bProportional = proportional;
-            
-            HScheme id = m_nNextSchemeID++;
-            m_Schemes[id] = pScheme;
-            
-            return id;
+            VGUI_TRACE("ISchemeManager::GetImage('%s')\n", imageName ? imageName : "(null)");
+            return nullptr;
         }
-        
-        const char* GetColor(HScheme scheme, const char* colorName) override
+        HTexture GetImageID(const char* imageName, bool hardwareFiltered) override
         {
-            auto it = m_Schemes.find(scheme);
-            if (it == m_Schemes.end()) return nullptr;
-            
-            auto colorIt = it->second->m_Colors.find(colorName);
-            if (colorIt == it->second->m_Colors.end()) return nullptr;
-            
-            return colorIt->second.c_str();
+            VGUI_TRACE("ISchemeManager::GetImageID('%s')\n", imageName ? imageName : "(null)");
+            return 0;
         }
-        
-        HFont GetFont(HScheme scheme, const char* fontName) override
+        void* GetIScheme(HScheme scheme) override
         {
-            auto it = m_Schemes.find(scheme);
-            if (it == m_Schemes.end()) return INVALID_FONT;
-            
-            auto fontIt = it->second->m_Fonts.find(fontName);
-            if (fontIt == it->second->m_Fonts.end()) return INVALID_FONT;
-            
-            return fontIt->second;
+            VGUI_TRACE("ISchemeManager::GetIScheme(%lu) -> NULL (IScheme not implemented)\n", scheme);
+            return nullptr;
         }
-        
-        void ReloadSchemes() override
-        {
-            for (auto& pair : m_Schemes)
-            {
-                delete pair.second;
-            }
-            m_Schemes.clear();
-            m_nNextSchemeID = 1;
-        }
-        
-        void AddCustomFont(const char* fontName) override
-        {
-            // TODO: Implement custom font registration
-        }
-        
-        void SetColor(HScheme scheme, const char* colorName, const char* colorValue)
-        {
-            auto it = m_Schemes.find(scheme);
-            if (it == m_Schemes.end()) return;
-            
-            it->second->m_Colors[colorName] = colorValue;
-        }
-        
-        void SetFont(HScheme scheme, const char* fontName, HFont font)
-        {
-            auto it = m_Schemes.find(scheme);
-            if (it == m_Schemes.end()) return;
-            
-            it->second->m_Fonts[fontName] = font;
-        }
-        
+        void Shutdown(bool full) override { VGUI_TRACE("ISchemeManager::Shutdown(%d)\n", (int)full); }
+        int GetProportionalScaledValue(int normalizedValue) override { return normalizedValue * ScreenTall() / 480; }
+        int GetProportionalNormalizedValue(int scaledValue) override { return scaledValue * 480 / ScreenTall(); }
+        int Slot11() override { VGUI_TRACE("ISchemeManager::Slot11\n"); return 0; }
+        int Slot12(int a1) override { VGUI_TRACE("ISchemeManager::Slot12(%d)\n", a1); return 0; }
+        int Slot13(int a1) override { VGUI_TRACE("ISchemeManager::Slot13(%d)\n", a1); return 0; }
+
     private:
-        std::map<HScheme, Scheme*> m_Schemes;
-        HScheme m_nNextSchemeID;
+        static int ScreenTall()
+        {
+            int t = GetSystemMetrics(SM_CYSCREEN);
+            return t > 0 ? t : 480;
+        }
+
+        std::map<std::string, HScheme> m_Tags;
+        HScheme m_nNext;
     };
-    
+
     static CSchemeManager g_SchemeManager;
-    
+
     void* CreateSchemeManager()
     {
+        Log("CreateSchemeManager() returning %p\n", &g_SchemeManager);
         return &g_SchemeManager;
     }
 }

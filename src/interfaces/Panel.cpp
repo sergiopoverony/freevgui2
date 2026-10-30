@@ -174,6 +174,8 @@ namespace vgui
         }
         bool IsEnabled(VPANEL vp) override { VPanel* p = P(vp); return p ? p->IsEnabled() : false; }
         void SetEnabled(VPANEL vp, bool state) override { if (VPanel* p = P(vp)) p->SetEnabled(state); }
+        int Slot58(VPANEL vp) override { TRACE("IPanel::Slot58(%lu)\n", vp); return 0; }
+        int Slot59(VPANEL vp) override { TRACE("IPanel::Slot59(%lu)\n", vp); return 0; }
 
     private:
         static VPanel* P(VPANEL vp) { return vp ? GetVPanel((HPanel)vp) : nullptr; }
