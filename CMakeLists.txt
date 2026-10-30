@@ -31,6 +31,9 @@ add_library(vgui2 SHARED
     src/core/UtlVector_Element.cpp
 )
 
+# Linker map (vgui2.map) lets us translate RVAs from vgui2_debug.log into function names
+set_target_properties(vgui2 PROPERTIES LINK_FLAGS "/MAP")
+
 target_include_directories(vgui2 PRIVATE include)
 target_compile_definitions(vgui2 PRIVATE WIN32 _WINDOWS _USRDLL vgui2_EXPORTS)
 target_link_libraries(vgui2 PRIVATE kernel32 user32 gdi32 winspool shell32 ole32 oleaut32 uuid comdlg32 advapi32 winmm)
