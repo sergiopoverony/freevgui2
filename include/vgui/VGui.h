@@ -1,5 +1,19 @@
 #pragma once
 
+// windows.h defines macros (CreateFont -> CreateFontA, PlaySound, SendMessage,
+// GetClassName, PostMessage ...) that silently rename our virtual methods.
+// Include it here once and remove them, so every file sees the real names.
+#ifdef _WIN32
+#include <windows.h>
+#undef CreateFont
+#undef PlaySound
+#undef SendMessage
+#undef PostMessage
+#undef GetClassName
+#undef GetCurrentTime
+#undef GetTextSize
+#endif
+
 #ifdef _WIN32
 #ifdef vgui2_EXPORTS
 #define VGUI_API __declspec(dllexport)
@@ -12,6 +26,7 @@
 
 namespace vgui
 {
+    typedef unsigned long VPANEL;
     typedef unsigned long HPanel;
     typedef unsigned long HScheme;
     typedef unsigned long HFont;

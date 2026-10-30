@@ -48,7 +48,7 @@ namespace vgui
 
     extern void* CreateSchemeManager();
     extern void* CreateLocalizeReal();
-    extern void* CreateFileSystemReal();
+    extern void* CreateLocalize002Real();
     extern void* CreateKeyValuesReal();
     extern void* CreateSurfaceReal();
     extern void* CreateInputReal();
@@ -58,7 +58,7 @@ namespace vgui
     extern void* CreatePanelReal();
 
     static void* CreateInput() { Log("CreateInput() called\n"); return CreateInputReal(); }
-    static void* CreateFileSystem() { Log("CreateFileSystem() called\n"); return CreateFileSystemReal(); }
+    static void* CreateLocalize002() { Log("CreateLocalize002() called\n"); return CreateLocalize002Real(); }
     static void* CreateLocalize() { Log("CreateLocalize() called\n"); return CreateLocalizeReal(); }
     static void* CreateKeyValues() { Log("CreateKeyValues() called\n"); return CreateKeyValuesReal(); }
     static void* CreateSurface() { Log("CreateSurface() called\n"); return CreateSurfaceReal(); }
@@ -71,8 +71,11 @@ namespace vgui
     static InterfaceReg g_InputReg(CreateInput, VGUI_INPUT_INTERFACE_VERSION);
     static InterfaceReg g_InputInternalReg(CreateInputInternal, VGUI_INPUTINTERNAL_INTERFACE_VERSION);
     static InterfaceReg g_VGuiReg(CreateVGui, VGUI_IVGUI_INTERFACE_VERSION);
-    static InterfaceReg g_FileSystemReg(CreateFileSystem, VFILESYSTEM_INTERFACE_VERSION);
+    // NOTE: the original vgui2.dll does NOT provide "VFileSystem009" (it only queries it from
+    // the engine's factories), so it must not be registered here. It does provide Surface026
+    // and both Localize002/Localize003. Registered set = the 10 interfaces of the original.
     static InterfaceReg g_LocalizeReg(CreateLocalize, VGUI_LOCALIZE_INTERFACE_VERSION);
+    static InterfaceReg g_Localize002Reg(CreateLocalize002, "VGUI_Localize002");
     static InterfaceReg g_KeyValuesReg(CreateKeyValues, KEYVALUES_INTERFACE_VERSION);
     static InterfaceReg g_SurfaceReg(CreateSurface, "VGUI_Surface026");
     static InterfaceReg g_SchemeManagerReg(CreateSchemeManager, "VGUI_Scheme009");
@@ -183,19 +186,101 @@ namespace vgui
     }
 }
 
+
+// ---------------------------------------------------------------------------
+// Crash logger: first-chance logging of fatal exceptions (access violation etc.)
+// with module+RVA of the faulting address and of return addresses on the stack.
+// Output goes to vgui2_debug.log. Remove once the vtables are all correct.
+// ---------------------------------------------------------------------------
+static const char* DescribeAddr(DWORD addr, char* out, size_t outSize, bool* pInModule)
+{
+    HMODULE hMod = nullptr;
+    char path[MAX_PATH] = {0};
+    bool ok = GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                 (LPCSTR)(ULONG_PTR)addr, &hMod) != 0;
+    if (pInModule) *pInModule = ok;
+    if (ok && GetModuleFileNameA(hMod, path, MAX_PATH))
+    {
+        const char* name = strrchr(path, '\\');
+        name = name ? name + 1 : path;
+        _snprintf(out, outSize, "%s+0x%X (base %08X)", name, (unsigned)(addr - (DWORD)(ULONG_PTR)hMod), (unsigned)(ULONG_PTR)hMod);
+    }
+    else
+    {
+        _snprintf(out, outSize, "<no module>");
+    }
+    out[outSize - 1] = 0;
+    return out;
+}
+
+static void LogStack(DWORD esp)
+{
+    __try
+    {
+        const DWORD* p = (const DWORD*)(ULONG_PTR)esp;
+        int shown = 0;
+        for (int i = 0; i < 96 && shown < 24; i++)
+        {
+            DWORD v = p[i];
+            bool inMod = false;
+            char desc[300];
+            DescribeAddr(v, desc, sizeof(desc), &inMod);
+            if (inMod)
+            {
+                vgui::Log("    [esp+%02X] %08X  %s\n", i * 4, v, desc);
+                shown++;
+            }
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        vgui::Log("    (stack unreadable)\n");
+    }
+}
+
+static LONG CALLBACK CrashLogger(PEXCEPTION_POINTERS ep)
+{
+    DWORD code = ep->ExceptionRecord->ExceptionCode;
+    if ((code & 0xF0000000) != 0xC0000000)
+        return EXCEPTION_CONTINUE_SEARCH;
+
+    static volatile LONG s_count = 0;
+    if (InterlockedIncrement(&s_count) > 8)
+        return EXCEPTION_CONTINUE_SEARCH;
+
+    char desc[300];
+    PCONTEXT c = ep->ContextRecord;
+    vgui::Log("\n!!! EXCEPTION 0x%08X at %08X  %s\n", code, (unsigned)(ULONG_PTR)ep->ExceptionRecord->ExceptionAddress,
+              DescribeAddr((DWORD)(ULONG_PTR)ep->ExceptionRecord->ExceptionAddress, desc, sizeof(desc), nullptr));
+    if (code == EXCEPTION_ACCESS_VIOLATION && ep->ExceptionRecord->NumberParameters >= 2)
+    {
+        vgui::Log("    access violation: %s address %08X\n",
+                  ep->ExceptionRecord->ExceptionInformation[0] == 0 ? "READ" :
+                  ep->ExceptionRecord->ExceptionInformation[0] == 1 ? "WRITE" : "EXEC/DEP",
+                  (unsigned)ep->ExceptionRecord->ExceptionInformation[1]);
+    }
+#ifdef _M_IX86
+    vgui::Log("    EIP=%08X ESP=%08X EBP=%08X EAX=%08X ECX=%08X EDX=%08X EBX=%08X ESI=%08X EDI=%08X\n",
+              c->Eip, c->Esp, c->Ebp, c->Eax, c->Ecx, c->Edx, c->Ebx, c->Esi, c->Edi);
+    LogStack(c->Esp);
+#endif
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
         DisableThreadLibraryCalls(hModule);
+        AddVectoredExceptionHandler(1, CrashLogger);
         vgui::Log("=== VGUI2 DLL Loaded ===\n");
         vgui::RegisterInterface(&vgui::g_PanelReg);
         vgui::RegisterInterface(&vgui::g_InputReg);
         vgui::RegisterInterface(&vgui::g_InputInternalReg);
         vgui::RegisterInterface(&vgui::g_VGuiReg);
-        vgui::RegisterInterface(&vgui::g_FileSystemReg);
         vgui::RegisterInterface(&vgui::g_LocalizeReg);
+        vgui::RegisterInterface(&vgui::g_Localize002Reg);
         vgui::RegisterInterface(&vgui::g_KeyValuesReg);
         vgui::RegisterInterface(&vgui::g_SurfaceReg);
         vgui::RegisterInterface(&vgui::g_SchemeManagerReg);

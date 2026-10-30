@@ -3,280 +3,121 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
 #include <map>
+#include <mutex>
 #include <string>
-#include <vector>
 
 namespace vgui
 {
-    class CKeyValuesNode
+    extern void Log(const char* format, ...);
+
+    // Implementation of IKeyValuesSystem ("KeyValues003").
+    // Every method logs its first calls (arguments included) so that the real
+    // vtable order can be confirmed from vgui2_debug.log.
+    class CKeyValuesSystem : public IKeyValues
     {
     public:
-        std::string m_Name;
-        std::string m_Value;
-        std::map<std::string, CKeyValuesNode*> m_Children;
-        std::vector<CKeyValuesNode*> m_OrderedChildren;
-        
-        CKeyValuesNode(const char* name) : m_Name(name ? name : "") {}
-        
-        ~CKeyValuesNode()
+        CKeyValuesSystem() : m_nSizeofKeyValues(0)
         {
-            for (auto& pair : m_Children)
-            {
-                delete pair.second;
-            }
+            memset(m_nCalls, 0, sizeof(m_nCalls));
         }
-        
-        void SetString(const char* key, const char* value)
+
+        void RegisterSizeofKeyValues(int size) override
         {
-            auto it = m_Children.find(key);
-            if (it != m_Children.end())
+            m_nSizeofKeyValues = size;
+            Log("IKeyValues::RegisterSizeofKeyValues(%d)\n", size);
+        }
+
+        void* AllocKeyValuesMemory(int size) override
+        {
+            // calloc: KeyValues constructor initializes the object anyway, zeroing is just safer.
+            void* p = calloc(1, size > 0 ? (size_t)size : 1);
+            if (Trace(0)) Log("IKeyValues::AllocKeyValuesMemory(%d) -> %p\n", size, p);
+            return p;
+        }
+
+        void FreeKeyValuesMemory(void* pMem) override
+        {
+            if (Trace(1)) Log("IKeyValues::FreeKeyValuesMemory(%p)\n", pMem);
+            free(pMem);
+        }
+
+        HKeySymbol GetSymbolForString(const char* name) override
+        {
+            if (!name) name = "";
+            std::string key = Lower(name);
+            std::lock_guard<std::mutex> lock(m_Mutex);
+            auto it = m_SymbolIndex.find(key);
+            HKeySymbol sym;
+            if (it != m_SymbolIndex.end())
             {
-                it->second->m_Value = value ? value : "";
+                sym = it->second;
             }
             else
             {
-                CKeyValuesNode* pNode = new CKeyValuesNode(key);
-                pNode->m_Value = value ? value : "";
-                m_Children[key] = pNode;
-                m_OrderedChildren.push_back(pNode);
+                m_Strings.push_back(name);                 // keeps original case
+                sym = (HKeySymbol)m_Strings.size();        // 1-based, 0 is never a valid symbol
+                m_SymbolIndex[key] = sym;
             }
+            if (Trace(2)) Log("IKeyValues::GetSymbolForString('%s') -> %d\n", name, sym);
+            return sym;
         }
-        
-        const char* GetString(const char* key, const char* defaultValue = "")
+
+        const char* GetStringForSymbol(HKeySymbol symbol) override
         {
-            auto it = m_Children.find(key);
-            if (it != m_Children.end())
-            {
-                return it->second->m_Value.c_str();
-            }
-            return defaultValue;
+            std::lock_guard<std::mutex> lock(m_Mutex);
+            const char* s = "";
+            if (symbol >= 1 && (size_t)symbol <= m_Strings.size())
+                s = m_Strings[(size_t)symbol - 1].c_str();
+            if (Trace(3)) Log("IKeyValues::GetStringForSymbol(%d) -> '%s'\n", symbol, s);
+            return s;
         }
-        
-        int GetInt(const char* key, int defaultValue = 0)
+
+        void GetLocalizedFromANSI(const char* ansi, wchar_t* outBuf, int unicodeBufferSizeInBytes) override
         {
-            auto it = m_Children.find(key);
-            if (it != m_Children.end())
-            {
-                return atoi(it->second->m_Value.c_str());
-            }
-            return defaultValue;
+            if (Trace(4)) Log("IKeyValues::GetLocalizedFromANSI('%s', %p, %d)\n", ansi ? ansi : "(null)", outBuf, unicodeBufferSizeInBytes);
+            if (!outBuf || unicodeBufferSizeInBytes < (int)sizeof(wchar_t)) return;
+            int maxChars = unicodeBufferSizeInBytes / (int)sizeof(wchar_t);
+            outBuf[0] = 0;
+            if (!ansi) return;
+            int n = MultiByteToWideChar(CP_ACP, 0, ansi, -1, outBuf, maxChars);
+            if (n <= 0) outBuf[maxChars - 1] = 0;
         }
-        
-        float GetFloat(const char* key, float defaultValue = 0.0f)
+
+        void GetANSIFromLocalized(const wchar_t* wchar, char* outBuf, int ansiBufferSizeInBytes) override
         {
-            auto it = m_Children.find(key);
-            if (it != m_Children.end())
-            {
-                return (float)atof(it->second->m_Value.c_str());
-            }
-            return defaultValue;
+            if (Trace(5)) Log("IKeyValues::GetANSIFromLocalized(%p, %p, %d)\n", wchar, outBuf, ansiBufferSizeInBytes);
+            if (!outBuf || ansiBufferSizeInBytes <= 0) return;
+            outBuf[0] = 0;
+            if (!wchar) return;
+            int n = WideCharToMultiByte(CP_ACP, 0, wchar, -1, outBuf, ansiBufferSizeInBytes, nullptr, nullptr);
+            if (n <= 0) outBuf[ansiBufferSizeInBytes - 1] = 0;
         }
-        
-        CKeyValuesNode* GetSubKey(const char* name)
-        {
-            auto it = m_Children.find(name);
-            if (it != m_Children.end())
-            {
-                return it->second;
-            }
-            return nullptr;
-        }
-        
-        CKeyValuesNode* CreateNewKey(const char* name)
-        {
-            CKeyValuesNode* pNode = new CKeyValuesNode(name);
-            m_Children[name] = pNode;
-            m_OrderedChildren.push_back(pNode);
-            return pNode;
-        }
-        
-        CKeyValuesNode* GetFirstSubKey()
-        {
-            if (m_OrderedChildren.empty()) return nullptr;
-            return m_OrderedChildren[0];
-        }
-        
-        CKeyValuesNode* GetNextKey()
-        {
-            // This requires parent context, simplified version
-            return nullptr;
-        }
-    };
-    
-    class CKeyValues : public IKeyValues
-    {
-    public:
-        void* CreateKeyValues(const char* name) override
-        {
-            return new CKeyValuesNode(name);
-        }
-        
-        void DeleteKeyValues(void* kv) override
-        {
-            if (kv)
-            {
-                delete static_cast<CKeyValuesNode*>(kv);
-            }
-        }
-        
-        bool LoadFromFile(void* kv, const char* fileName)
-        {
-            if (!kv || !fileName) return false;
-            
-            FILE* f = fopen(fileName, "rb");
-            if (!f) return false;
-            
-            fseek(f, 0, SEEK_END);
-            long size = ftell(f);
-            fseek(f, 0, SEEK_SET);
-            
-            char* buffer = (char*)malloc(size + 1);
-            if (!buffer)
-            {
-                fclose(f);
-                return false;
-            }
-            
-            fread(buffer, 1, size, f);
-            buffer[size] = 0;
-            fclose(f);
-            
-            CKeyValuesNode* pNode = static_cast<CKeyValuesNode*>(kv);
-            bool result = ParseBuffer(pNode, buffer);
-            
-            free(buffer);
-            return result;
-        }
-        
-        bool SaveToFile(void* kv, const char* fileName)
-        {
-            if (!kv || !fileName) return false;
-            
-            FILE* f = fopen(fileName, "wb");
-            if (!f) return false;
-            
-            CKeyValuesNode* pNode = static_cast<CKeyValuesNode*>(kv);
-            WriteNode(f, pNode, 0);
-            
-            fclose(f);
-            return true;
-        }
-        
+
+        void AddKeyValuesToMemoryLeakList(void* pMem, HKeySymbol name) override {}
+        void RemoveKeyValuesFromMemoryLeakList(void* pMem) override {}
+
     private:
-        bool ParseBuffer(CKeyValuesNode* pNode, const char* buffer)
+        static std::string Lower(const char* s)
         {
-            const char* p = buffer;
-            
-            while (*p)
-            {
-                // Skip whitespace
-                while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') p++;
-                if (!*p) break;
-                
-                if (*p == '{')
-                {
-                    p++;
-                    continue;
-                }
-                
-                if (*p == '}')
-                {
-                    p++;
-                    return true;
-                }
-                
-                if (*p == '"')
-                {
-                    p++; // skip opening quote
-                    const char* start = p;
-                    while (*p && *p != '"')
-                    {
-                        if (*p == '\\' && *(p+1)) p++;
-                        p++;
-                    }
-                    
-                    size_t len = p - start;
-                    char key[512];
-                    if (len >= sizeof(key)) len = sizeof(key) - 1;
-                    memcpy(key, start, len);
-                    key[len] = 0;
-                    
-                    if (*p == '"') p++;
-                    
-                    // Skip whitespace
-                    while (*p == ' ' || *p == '\t') p++;
-                    
-                    if (*p == '"')
-                    {
-                        p++; // skip opening quote
-                        start = p;
-                        while (*p && *p != '"')
-                        {
-                            if (*p == '\\' && *(p+1)) p++;
-                            p++;
-                        }
-                        
-                        len = p - start;
-                        char value[4096];
-                        if (len >= sizeof(value)) len = sizeof(value) - 1;
-                        memcpy(value, start, len);
-                        value[len] = 0;
-                        
-                        if (*p == '"') p++;
-                        
-                        pNode->SetString(key, value);
-                    }
-                    else if (*p == '{')
-                    {
-                        CKeyValuesNode* pSubKey = pNode->CreateNewKey(key);
-                        p++; // skip '{'
-                        ParseBuffer(pSubKey, p);
-                        
-                        // Find closing brace
-                        while (*p && *p != '}') p++;
-                        if (*p == '}') p++;
-                    }
-                }
-                else
-                {
-                    p++;
-                }
-            }
-            
-            return true;
+            std::string r(s);
+            for (char& c : r) if (c >= 'A' && c <= 'Z') c = (char)(c - 'A' + 'a');
+            return r;
         }
-        
-        void WriteNode(FILE* f, CKeyValuesNode* pNode, int indent)
-        {
-            for (int i = 0; i < indent; i++) fprintf(f, "\t");
-            fprintf(f, "\"%s\"\n", pNode->m_Name.c_str());
-            
-            for (int i = 0; i < indent; i++) fprintf(f, "\t");
-            fprintf(f, "{\n");
-            
-            for (auto* pChild : pNode->m_OrderedChildren)
-            {
-                if (pChild->m_OrderedChildren.empty())
-                {
-                    // Key-value pair
-                    for (int i = 0; i <= indent; i++) fprintf(f, "\t");
-                    fprintf(f, "\"%s\"\t\t\"%s\"\n", pChild->m_Name.c_str(), pChild->m_Value.c_str());
-                }
-                else
-                {
-                    // Sub-section
-                    WriteNode(f, pChild, indent + 1);
-                }
-            }
-            
-            for (int i = 0; i < indent; i++) fprintf(f, "\t");
-            fprintf(f, "}\n");
-        }
+
+        // Log only the first 64 calls of each method to keep the log readable.
+        bool Trace(int idx) { return m_nCalls[idx]++ < 64; }
+
+        int m_nSizeofKeyValues;
+        int m_nCalls[8];
+        std::mutex m_Mutex;
+        std::deque<std::string> m_Strings;            // deque: references stay valid on push_back
+        std::map<std::string, HKeySymbol> m_SymbolIndex;
     };
-    
-    static CKeyValues g_KeyValuesInstance;
-    
+
+    static CKeyValuesSystem g_KeyValuesInstance;
+
     void* CreateKeyValuesReal()
     {
         return &g_KeyValuesInstance;
